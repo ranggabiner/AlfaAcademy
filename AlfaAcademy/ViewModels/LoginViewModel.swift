@@ -16,4 +16,8 @@ class LoginViewModel {
         }
         return isValid
     }
+    
+    func isUsernameExists(username: String) -> Bool {
+        return username == "alfagift-admin"
+    }
 }

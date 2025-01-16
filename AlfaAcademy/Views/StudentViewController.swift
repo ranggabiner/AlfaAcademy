@@ -18,6 +18,23 @@ class StudentViewController: UIViewController {
         return table
     }()
     
+    private let redBox: UIView = {
+        let view = UIView()
+        view.backgroundColor = .redClr
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Students"
+        label.textColor = .white
+        label.font = UIFont.boldSystemFont(ofSize: 22)
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
     private let loadingIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .medium)
         indicator.translatesAutoresizingMaskIntoConstraints = false
@@ -36,31 +53,53 @@ class StudentViewController: UIViewController {
     }
     
     private func setupUI() {
-        title = "Students"
-        view.backgroundColor = .systemBackground
-        navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Logout",
-                                                          style: .plain,
-                                                          target: self,
-                                                          action: #selector(logoutTapped))
+        let logoutButton = UIButton(type: .system)
+        logoutButton.setTitle("Logout", for: .normal)
+        logoutButton.setTitleColor(.redClr, for: .normal)
+        logoutButton.backgroundColor = .white
+        logoutButton.layer.cornerRadius = 8
+        logoutButton.layer.masksToBounds = true
+        logoutButton.addTarget(self, action: #selector(logoutTapped), for: .touchUpInside)
+        logoutButton.translatesAutoresizingMaskIntoConstraints = false
+        logoutButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        logoutButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        
+        let logoutBarButtonItem = UIBarButtonItem(customView: logoutButton)
+        navigationItem.rightBarButtonItem = logoutBarButtonItem
+
+        view.addSubview(redBox)
+        redBox.addSubview(titleLabel)
+        NSLayoutConstraint.activate([
+            redBox.topAnchor.constraint(equalTo: view.topAnchor),
+            redBox.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            redBox.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            redBox.heightAnchor.constraint(equalToConstant: 100),
+            
+            titleLabel.topAnchor.constraint(equalTo: redBox.topAnchor, constant: 64),
+            titleLabel.leadingAnchor.constraint(equalTo: redBox.leadingAnchor, constant: 16),
+        ])
     }
     
     @objc private func logoutTapped() {
-        UserDefaultsHelper.logout()
-        
-        let loginVC = LoginViewController()
-        loginVC.modalPresentationStyle = .fullScreen
-        
-        // Get current window from window scene
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            window.rootViewController = loginVC
-            window.makeKeyAndVisible()
-        } else {
-            // Fallback to modal presentation
-            present(loginVC, animated: true)
-        }
+        let alert = UIAlertController(title: "Logout", message: "Are you sure you want to logout?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Yes", style: .destructive, handler: { _ in
+            UserDefaultsHelper.logout()
+            
+            let loginVC = LoginViewController()
+            loginVC.modalPresentationStyle = .fullScreen
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first {
+                window.rootViewController = loginVC
+                window.makeKeyAndVisible()
+            } else {
+                self.present(loginVC, animated: true)
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "No", style: .cancel, handler: nil))
+        present(alert, animated: true)
     }
+
     
     private func setupTableView() {
         view.addSubview(tableView)
@@ -71,7 +110,7 @@ class StudentViewController: UIViewController {
         tableView.register(StudentCell.self, forCellReuseIdentifier: StudentCell.identifier)
         
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.topAnchor.constraint(equalTo: redBox.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
