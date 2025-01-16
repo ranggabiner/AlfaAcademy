@@ -239,49 +239,41 @@ class LoginViewController: UIViewController {
     
     @objc private func loginTapped() {
         guard let username = usernameTextField.text,
-              let password = passwordTextField.text else { return }
-        
-        var isValid = true
-        
-        if username.isEmpty {
-            usernameTextField.layer.borderColor = UIColor.red.cgColor
-            usernameErrorLabel.text = "Username must be filled"
-            usernameErrorLabel.isHidden = false
-            isValid = false
-        } else {
-            usernameTextField.layer.borderColor = UIColor.grayBorder.cgColor
-            usernameErrorLabel.isHidden = true
-        }
-        
-        if password.isEmpty {
-            passwordTextField.layer.borderColor = UIColor.red.cgColor
-            passwordErrorLabel.text = "This column is required"
-            passwordErrorLabel.isHidden = false
-            isValid = false
-        } else {
-            passwordTextField.layer.borderColor = UIColor.grayBorder.cgColor
-            passwordErrorLabel.isHidden = true
-        }
-        
+                let password = passwordTextField.text else { return }
+          
+          var isValid = true
+          
+          if username.isEmpty {
+              usernameTextField.layer.borderColor = UIColor.red.cgColor
+              usernameErrorLabel.text = "Username must be filled"
+              usernameErrorLabel.isHidden = false
+              isValid = false
+          } else {
+              usernameTextField.layer.borderColor = UIColor.grayBorder.cgColor
+              usernameErrorLabel.isHidden = true
+          }
+          
         if isValid {
-            if viewModel.login(username: username, password: password) {
-                let studentVC = StudentViewController()
-                let nav = UINavigationController(rootViewController: studentVC)
-                nav.modalPresentationStyle = .fullScreen
-                present(nav, animated: true)
-            } else {
-                if viewModel.isUsernameExists(username: username) {
-                    passwordTextField.layer.borderColor = UIColor.red.cgColor
-                    passwordErrorLabel.text = "Your password is invalid. Please try again."
-                    passwordErrorLabel.isHidden = false
-                } else {
-                    let alert = UIAlertController(title: "User Not Found",
-                                                message: "Are you sure you registered?",
-                                                preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    present(alert, animated: true)
+            viewModel.login(username: username, password: password) { [weak self] result in
+                switch result {
+                case .success:
+                    DispatchQueue.main.async {
+                        let studentVC = StudentViewController()
+                        let nav = UINavigationController(rootViewController: studentVC)
+                        nav.modalPresentationStyle = .fullScreen
+                        self?.present(nav, animated: true)
+                    }
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Login Failed",
+                                                      message: error.localizedDescription,
+                                                      preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "OK", style: .default))
+                        self?.present(alert, animated: true)
+                    }
                 }
             }
         }
     }
+
 }
