@@ -7,7 +7,7 @@
 
 import UIKit
 
-class LoginViewController: UIViewController {
+class LoginViewController: UIViewController, NetworkMonitorDelegate {
     private let viewModel = LoginViewModel()
     
     private let stackView: UIStackView = {
@@ -139,13 +139,23 @@ class LoginViewController: UIViewController {
         return label
     }()
     
+    private let loadingIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.hidesWhenStopped = true
+        indicator.color = .white
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        return indicator
+    }()
+
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupDoneButton()
         setupTextFieldObservers()
+        NetworkMonitor.shared.delegate = self
     }
-    
+
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
@@ -154,6 +164,7 @@ class LoginViewController: UIViewController {
         redBox.addSubview(subtitleLabel)
         view.addSubview(stackView)
         view.addSubview(loginButton)
+        loginButton.addSubview(loadingIndicator)
         
         let usernameStackView = UIStackView(arrangedSubviews: [usernameTextField, usernameErrorLabel])
         usernameStackView.axis = .vertical
@@ -185,11 +196,39 @@ class LoginViewController: UIViewController {
             loginButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             loginButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             loginButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            loginButton.heightAnchor.constraint(equalToConstant: 50)
+            loginButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            loadingIndicator.centerXAnchor.constraint(equalTo: loginButton.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: loginButton.centerYAnchor)
+
         ])
         
         loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
     }
+    
+    func networkStatusDidChange(isConnected: Bool) {
+        if !isConnected {
+            showNoInternetAlert()
+        }
+    }
+    
+    // Add this method
+    private func showNoInternetAlert() {
+        let alert = UIAlertController(title: "No Internet Connection",
+                                    message: "Please check your internet connection and try again.",
+                                    preferredStyle: .alert)
+        
+        alert.addAction(UIAlertAction(title: "Refresh", style: .default, handler: { [weak self] _ in
+            if NetworkMonitor.shared.isConnected {
+                self?.loginTapped()
+            } else {
+                self?.showNoInternetAlert()
+            }
+        }))
+        
+        present(alert, animated: true)
+    }
+
     
     private func setupDoneButton() {
         let toolbar = UIToolbar()
@@ -230,50 +269,78 @@ class LoginViewController: UIViewController {
     @objc private func textFieldDidEndEditing(_ textField: UITextField) {
         textField.layer.borderColor = UIColor.grayBorder.cgColor
     }
-
-
     
     @objc private func doneButtonTapped() {
         view.endEditing(true)
     }
     
     @objc private func loginTapped() {
+        guard NetworkMonitor.shared.isConnected else {
+            showNoInternetAlert()
+            return
+        }
+
         guard let username = usernameTextField.text,
-                let password = passwordTextField.text else { return }
-          
-          var isValid = true
-          
-          if username.isEmpty {
-              usernameTextField.layer.borderColor = UIColor.red.cgColor
-              usernameErrorLabel.text = "Username must be filled"
-              usernameErrorLabel.isHidden = false
-              isValid = false
-          } else {
-              usernameTextField.layer.borderColor = UIColor.grayBorder.cgColor
-              usernameErrorLabel.isHidden = true
-          }
-          
+              let password = passwordTextField.text else { return }
+        
+        var isValid = true
+        
+        if username.isEmpty {
+            usernameTextField.layer.borderColor = UIColor.red.cgColor
+            usernameErrorLabel.text = "Username must be filled"
+            usernameErrorLabel.isHidden = false
+            isValid = false
+        } else {
+            usernameTextField.layer.borderColor = UIColor.grayBorder.cgColor
+            usernameErrorLabel.isHidden = true
+        }
+        
+        if password.isEmpty {
+            passwordTextField.layer.borderColor = UIColor.red.cgColor
+            passwordErrorLabel.text = "Password must be filled"
+            passwordErrorLabel.isHidden = false
+            isValid = false
+        } else {
+            passwordTextField.layer.borderColor = UIColor.grayBorder.cgColor
+            passwordErrorLabel.isHidden = true
+        }
+
         if isValid {
+            loginButton.setTitle("", for: .normal)
+            loadingIndicator.startAnimating()
+            loginButton.isEnabled = false
+
             viewModel.login(username: username, password: password) { [weak self] result in
-                switch result {
-                case .success:
-                    DispatchQueue.main.async {
-                        let studentVC = StudentViewController()
-                        let nav = UINavigationController(rootViewController: studentVC)
-                        nav.modalPresentationStyle = .fullScreen
-                        self?.present(nav, animated: true)
-                    }
-                case .failure(let error):
-                    DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Login Failed",
-                                                      message: error.localizedDescription,
-                                                      preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "OK", style: .default))
-                        self?.present(alert, animated: true)
+                DispatchQueue.main.async {
+                    // Hide loading state
+                    self?.loadingIndicator.stopAnimating()
+                    self?.loginButton.setTitle("Next", for: .normal)
+                    self?.loginButton.isEnabled = true
+                    switch result {
+                    case .success:
+                        DispatchQueue.main.async {
+                            let studentVC = StudentViewController()
+                            let nav = UINavigationController(rootViewController: studentVC)
+                            nav.modalPresentationStyle = .fullScreen
+                            self?.present(nav, animated: true)
+                        }
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            if (error as NSError).code == -2 { // Wrong password error
+                                self?.passwordTextField.layer.borderColor = UIColor.red.cgColor
+                                self?.passwordErrorLabel.text = "Wrong password"
+                                self?.passwordErrorLabel.isHidden = false
+                            } else { // Username not found error
+                                let alert = UIAlertController(title: "User Not Found",
+                                                              message: "Are you sure you registered?",
+                                                              preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                                self?.present(alert, animated: true)
+                            }
+                        }
                     }
                 }
             }
         }
     }
-
 }
