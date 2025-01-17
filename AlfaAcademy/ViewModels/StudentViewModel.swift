@@ -9,7 +9,7 @@ import Foundation
 import Supabase
 
 class StudentViewModel {
-    private let client = SupabaseClient(supabaseURL: URL(string: "url")!, supabaseKey: "key")
+    private let client = SupabaseClient(supabaseURL: URL(string: "key")!, supabaseKey: "url")
     @Published var students: [Student] = []
     
     @MainActor
