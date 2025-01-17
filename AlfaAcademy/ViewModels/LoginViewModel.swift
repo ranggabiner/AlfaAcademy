@@ -10,7 +10,7 @@ import Supabase
 
 class LoginViewModel {
     private let client = SupabaseClient(supabaseURL: URL(string: "key")!, supabaseKey: "url")
-    
+
     private func getEmailByUsername(_ username: String) async throws -> String? {
         let query = client.database
             .from("users")
