@@ -7,7 +7,7 @@
 
 import UIKit
 
-class StudentViewController: UIViewController {
+class StudentViewController: UIViewController, NetworkMonitorDelegate {
     private var viewModel = StudentViewModel()
     
     private let tableView: UITableView = {
@@ -47,10 +47,18 @@ class StudentViewController: UIViewController {
         setupUI()
         setupTableView()
         setupRefreshControl()
+        NetworkMonitor.shared.delegate = self
         Task {
             await fetchStudents()
         }
     }
+    
+    func networkStatusDidChange(isConnected: Bool) {
+        if !isConnected {
+            showNoInternetAlert()
+        }
+    }
+
     
     private func setupUI() {
         let logoutButton = UIButton(type: .system)
@@ -69,6 +77,7 @@ class StudentViewController: UIViewController {
 
         view.addSubview(redBox)
         redBox.addSubview(titleLabel)
+        
         NSLayoutConstraint.activate([
             redBox.topAnchor.constraint(equalTo: view.topAnchor),
             redBox.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -77,6 +86,7 @@ class StudentViewController: UIViewController {
             
             titleLabel.topAnchor.constraint(equalTo: redBox.topAnchor, constant: 64),
             titleLabel.leadingAnchor.constraint(equalTo: redBox.leadingAnchor, constant: 16),
+            
         ])
     }
     
@@ -133,22 +143,51 @@ class StudentViewController: UIViewController {
         }
     }
     
+    @objc private func refreshTapped() {
+        Task {
+            await fetchStudents()
+        }
+    }
+    
+    private func showNoInternetAlert() {
+        let alert = UIAlertController(title: "No Internet Connection",
+                                    message: "Please check your internet connection and try again.",
+                                    preferredStyle: .alert)
+        
+        alert.addAction(UIAlertAction(title: "Refresh", style: .default, handler: { [weak self] _ in
+            Task {
+                await self?.fetchStudents()
+            }
+        }))
+        
+        present(alert, animated: true)
+    }
+
+    
     private func fetchStudents() async {
         await MainActor.run { loadingIndicator.startAnimating() }
         
-        do {
-            await viewModel.fetchStudents()
-            await MainActor.run {
-                loadingIndicator.stopAnimating()
-                tableView.reloadData()
+        if NetworkMonitor.shared.isConnected {
+            do {
+                await viewModel.fetchStudents()
+                await MainActor.run {
+                    loadingIndicator.stopAnimating()
+                    tableView.reloadData()
+                }
+            } catch {
+                await MainActor.run {
+                    loadingIndicator.stopAnimating()
+                    showError(message: error.localizedDescription)
+                }
             }
-        } catch {
+        } else {
             await MainActor.run {
                 loadingIndicator.stopAnimating()
-                showError(message: error.localizedDescription)
+                showNoInternetAlert()
             }
         }
     }
+
     
     private func showError(message: String) {
         let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
@@ -171,8 +210,10 @@ extension StudentViewController: UITableViewDataSource, UITableViewDelegate {
         return cell
     }
     
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         // Handle cell selection if needed
     }
 }
+
