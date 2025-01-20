@@ -59,8 +59,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         showPasswordButton.setImage(UIImage(systemName: "eye"), for: .normal)
         showPasswordButton.setImage(UIImage(systemName: "eye.slash"), for: .selected)
         showPasswordButton.tintColor = .gray
-        
-        showPasswordButton.addTarget(LoginViewController.self, action: #selector(togglePasswordVisibility), for: .touchUpInside)
+        showPasswordButton.addTarget(nil, action: #selector(togglePasswordVisibility), for: .touchUpInside)
         showPasswordButton.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
         
         let rightPaddingView = UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 24))
@@ -72,7 +71,6 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         
         return field
     }()
-    
     private let usernameErrorLabel: UILabel = {
         let label = UILabel()
         label.textColor = .red
@@ -149,6 +147,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         return indicator
     }()
 
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -159,6 +158,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
+        
         view.addSubview(redBox)
         redBox.addSubview(titleLabel)
         redBox.addSubview(subtitleLabel)
@@ -212,6 +212,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         }
     }
     
+    // Add this method
     private func showNoInternetAlert() {
         let alert = UIAlertController(title: "No Internet Connection",
                                     message: "Please check your internet connection and try again.",
@@ -228,6 +229,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         present(alert, animated: true)
     }
 
+    
     private func setupDoneButton() {
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
@@ -250,13 +252,11 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
         passwordTextField.addTarget(self, action: #selector(textFieldDidEndEditing(_:)), for: .editingDidEnd)
     }
     
-    // func
     @objc private func togglePasswordVisibility(_ sender: UIButton) {
         sender.isSelected.toggle()
         passwordTextField.isSecureTextEntry.toggle()
     }
 
-    // func
     @objc private func textFieldDidBeginEditing(_ textField: UITextField) {
         textField.layer.borderColor = UIColor.blueBorder.cgColor
         if textField == usernameTextField {
@@ -312,6 +312,7 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
 
             viewModel.login(username: username, password: password) { [weak self] result in
                 DispatchQueue.main.async {
+                    // Hide loading state
                     self?.loadingIndicator.stopAnimating()
                     self?.loginButton.setTitle("Next", for: .normal)
                     self?.loginButton.isEnabled = true
@@ -325,11 +326,11 @@ class LoginViewController: UIViewController, NetworkMonitorDelegate {
                         }
                     case .failure(let error):
                         DispatchQueue.main.async {
-                            if (error as NSError).code == -2 {
+                            if (error as NSError).code == -2 { // Wrong password error
                                 self?.passwordTextField.layer.borderColor = UIColor.red.cgColor
                                 self?.passwordErrorLabel.text = "Wrong password"
                                 self?.passwordErrorLabel.isHidden = false
-                            } else {
+                            } else { // Username not found error
                                 let alert = UIAlertController(title: "User Not Found",
                                                               message: "Are you sure you registered?",
                                                               preferredStyle: .alert)
