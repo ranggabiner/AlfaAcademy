@@ -9,11 +9,10 @@ import Foundation
 import Supabase
 
 class LoginViewModel {
-    private let client = SupabaseClient(supabaseURL: URL(string: "key")!, supabaseKey: "url")
+    private let client = SupabaseClient(supabaseURL: URL(string: "url")!, supabaseKey: "key")
 
     private func getEmailByUsername(_ username: String) async throws -> String? {
-        let query = client.database
-            .from("users")
+        let query = client.from("users")
             .select("email")
             .eq("username", value: username)
             .single()
@@ -30,13 +29,10 @@ class LoginViewModel {
                 }
                 
                 do {
-                    let response = try await client.auth.signIn(email: email, password: password)
-                    if response.user != nil {
+                    _ = try await client.auth.signIn(email: email, password: password)
                         UserDefaultsHelper.isLoggedIn = true
                         completion(.success(()))
-                    }
                 } catch {
-                    // Wrong password case
                     completion(.failure(NSError(domain: "", code: -2, userInfo: [NSLocalizedDescriptionKey: "Wrong password"])))
                 }
             } catch {

@@ -9,7 +9,7 @@ import UIKit
 
 class StudentCell: UITableViewCell {
     static let identifier = "StudentCell"
-    
+
     private let profileImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
