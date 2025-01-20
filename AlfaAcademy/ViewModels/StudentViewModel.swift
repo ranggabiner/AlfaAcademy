@@ -9,13 +9,13 @@ import Foundation
 import Supabase
 
 class StudentViewModel {
-    private let client = SupabaseClient(supabaseURL: URL(string: "key")!, supabaseKey: "url")
+    private let client = SupabaseClient(supabaseURL: URL(string: "url")!, supabaseKey: "key")
     @Published var students: [Student] = []
     
     @MainActor
-    func fetchStudents() async {
+    func fetchStudents() async throws {
         do {
-            let response = try await client.database.from("students").select().execute()
+            let response = try await client.from("students").select().execute()
             let students = try JSONDecoder().decode([Student].self, from: response.data)
             self.students = students
         } catch {

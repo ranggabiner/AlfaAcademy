@@ -59,7 +59,6 @@ class StudentViewController: UIViewController, NetworkMonitorDelegate {
         }
     }
 
-    
     private func setupUI() {
         let logoutButton = UIButton(type: .system)
         logoutButton.setTitle("Logout", for: .normal)
@@ -110,7 +109,6 @@ class StudentViewController: UIViewController, NetworkMonitorDelegate {
         present(alert, animated: true)
     }
 
-    
     private func setupTableView() {
         view.addSubview(tableView)
         view.addSubview(loadingIndicator)
@@ -163,13 +161,12 @@ class StudentViewController: UIViewController, NetworkMonitorDelegate {
         present(alert, animated: true)
     }
 
-    
     private func fetchStudents() async {
         await MainActor.run { loadingIndicator.startAnimating() }
         
         if NetworkMonitor.shared.isConnected {
             do {
-                await viewModel.fetchStudents()
+                try await viewModel.fetchStudents()
                 await MainActor.run {
                     loadingIndicator.stopAnimating()
                     tableView.reloadData()
@@ -188,7 +185,6 @@ class StudentViewController: UIViewController, NetworkMonitorDelegate {
         }
     }
 
-    
     private func showError(message: String) {
         let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -213,7 +209,6 @@ extension StudentViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        // Handle cell selection if needed
     }
 }
 
